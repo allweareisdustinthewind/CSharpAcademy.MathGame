@@ -37,21 +37,23 @@ namespace MathGame
          Normal
       }
 
-      public MenuItem (string name, int posX = 0, int posY = 0, MenuItem ?prevItem = null, MenuItem ?nextItem = null)
+      public MenuItem (string name, int posX = 0, int posY = 0, MenuItem ?prevItem = null, MenuItem ?nextItem = null, CallActionHandler? handler = null)
       {
          Name = name;
          PrevItem = prevItem;
          NextItem = nextItem;
          PosX = posX;
          PosY = posY;
+         CallAction = handler;
       }
 
       // Connect actual item with a new item 
-      public MenuItem ConnectWith (string name, int posX, int posY)
+      public MenuItem ConnectWith (string name, int posX, int posY, CallActionHandler ?handler = null)
       {
          MenuItem item = new (name, posX, posY);
          item.PrevItem = this;
          NextItem = item;
+         item.CallAction = handler;
 
          return item;
       }
@@ -88,28 +90,31 @@ namespace MathGame
       Settings _settings = new ();
 
       // Root of menu
-      MenuItem ?_root = null;
-
+      MenuItem?_startGameItem = null;
+      MenuItem? _settingsItem = null;
+      MenuItem? _showResultItem = null;
+      MenuItem? _settingsBlockBegin = null;
+      MenuItem? _settingsBlockEnd = null;
       MenuItem? _curItem = null;
 
+      bool isSettingsShown = false;
+
       // Display main menu
-      public void Display ()
+      void Display ()
       {
          DisplayGameDescription ();
          
-         MenuItem ?curItem = _root;
+         MenuItem ?curItem = _startGameItem;
          do
          {
             Console.SetCursorPosition (curItem.PosX, curItem.PosY);
             Console.Write (curItem.Name);
             curItem = curItem.NextItem;
          }
-         while (curItem != _root);
+         while (curItem != _startGameItem);
 
-         _root?.SetState (MenuItem.State.Highlighted);
-         _curItem = _root;
-
-         MenuLoop ();
+         _startGameItem?.SetState (MenuItem.State.Highlighted);
+         _curItem = _startGameItem;
       }
 
       // Creates title of game
@@ -137,35 +142,55 @@ namespace MathGame
       // Fill internal data with names and positions of all menu items
       void CreateMenuStructure ()
       {
-         if (_root != null)
+         if (_startGameItem != null)
             return;
 
          // Offset of standard menu items from left border of console window
-         const int offsetMenu = 8;
+         const int offsetMainMenu = 8;
+         const int offsetSettingsMenu = 4;
 
          var (x, y) = Console.GetCursorPosition ();
-         x += offsetMenu;
+         x += offsetMainMenu;
 
-         _root = new ("Start game", x, y);
-         _root.CallAction = ActionStartGame;
+         _startGameItem = new ("Start game", x, y, handler: ActionStartGame);
 
-         Tuple <string, MenuItem.CallActionHandler> [] items = 
-         [
-            new Tuple <string, MenuItem.CallActionHandler> ("Settings", ActionSettings),
-            new Tuple <string, MenuItem.CallActionHandler> ("Show all results", ActionShowResults),
-            new Tuple <string, MenuItem.CallActionHandler> ("Exit", ActionExit)
-         ];
-
-         MenuItem curItem = _root;
-         foreach (var (item, action) in items)
-         {
-            curItem = curItem.ConnectWith (item, x, ++y);
-            curItem.CallAction = action;
-         }
+         _settingsItem   = _startGameItem.ConnectWith ("Settings", x, ++y, ActionSettings);
+         _showResultItem = _settingsItem.ConnectWith ("Show all results", x, ++y, ActionShowResults);
+         var exitItem    = _showResultItem.ConnectWith ("Exit", x, ++y, ActionExit);
 
          // Connect item "Exit" with "Start game" to make a loop by selecting
-         curItem.NextItem = _root;
-         _root.PrevItem = curItem;
+         exitItem.NextItem = _startGameItem;
+         _startGameItem.PrevItem = exitItem;
+
+         int posX = x + offsetSettingsMenu;
+         int posY = y;
+
+         _settingsBlockBegin = new ("Difficulty: ", posX, ++posY);
+         _settingsBlockBegin.PrevItem = _settingsItem;
+
+         var curItem = _settingsBlockBegin;
+         curItem = curItem.ConnectWith ("easy",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
+         curItem = curItem.ConnectWith ("normal", posX += curItem.Name.Length, posY, ActionChangeDifficulty);
+         curItem = curItem.ConnectWith ("hard",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
+
+         posX = x + offsetSettingsMenu;
+         MenuItem itemMode = new ("Operation will be set: ", posX, ++posY);
+         itemMode.PrevItem = curItem;
+         curItem.NextItem = itemMode;
+
+         itemMode = itemMode.ConnectWith ("randomly",     posX += itemMode.Name.Length, posY, ActionChangeMode);
+         itemMode = itemMode.ConnectWith ("as following", posX += itemMode.Name.Length, posY, ActionChangeMode);
+
+         MenuItem itemOper = new ("+ : addition", posX, ++posY, handler: ActionChangeOperation);
+         itemOper.PrevItem = itemMode;
+         curItem.NextItem = itemOper;
+
+         curItem = curItem.ConnectWith ("- : subtraction",    posX, ++posY, ActionChangeOperation);
+         curItem = curItem.ConnectWith ("x : multiplication", posX, ++posY, ActionChangeOperation);
+         curItem = curItem.ConnectWith ("/ : division",       posX, ++posY, ActionChangeOperation);
+
+         _settingsBlockEnd = curItem;
+         _settingsBlockEnd.NextItem = _showResultItem;
       }
 
       void SelectItem (MenuItem ?item)
@@ -182,6 +207,35 @@ namespace MathGame
 
       bool ActionSettings ()
       {
+         isSettingsShown = !isSettingsShown;
+         if (isSettingsShown)
+         {
+            _settingsItem.NextItem = _settingsBlockBegin;
+            _showResultItem.PrevItem = _settingsBlockEnd;
+         }
+         else
+         {
+            _settingsItem.NextItem = _showResultItem;
+            _showResultItem.PrevItem = _settingsItem;
+         }
+
+         Display ();
+
+         return false;
+      }
+
+      bool ActionChangeDifficulty ()
+      {
+         return false;
+      }
+
+      bool ActionChangeMode ()
+      {
+         return false;
+      }
+
+      bool ActionChangeOperation ()
+      {
          return false;
       }
 
@@ -195,8 +249,10 @@ namespace MathGame
          return true;
       }
 
-      void MenuLoop ()
+      public void Run ()
       {
+         Display ();
+
          Console.CursorVisible = false;
 
          bool exitGame = false;

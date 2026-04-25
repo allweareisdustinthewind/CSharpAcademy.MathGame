@@ -735,5 +735,5 @@
 //}
 
 GameMenu menu = new ();
-menu.Display ();
+menu.Run ();
 

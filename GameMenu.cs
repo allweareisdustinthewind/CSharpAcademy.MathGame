@@ -170,7 +170,13 @@ namespace MathGame
 
       int _posShowResult = 0;
 
-      bool isSettingsShown = false;
+      bool _isSettingsShown = false;
+      GameLogic _logic = null;
+
+      public GameMenu ()
+      {
+         _logic = new (_settings);
+      }
 
       // Display main menu
       void Display ()
@@ -294,13 +300,22 @@ namespace MathGame
 
       bool ActionStartGame ()
       {
+         _logic?.PlayRound ();
+
+         _curItem = _startGameItem;
+
+         if (_isSettingsShown)
+            ActionSettings ();
+         else
+            Display ();
+
          return false;
       }
 
       bool ActionSettings ()
       {
-         isSettingsShown = !isSettingsShown;
-         if (isSettingsShown)
+         _isSettingsShown = !_isSettingsShown;
+         if (_isSettingsShown)
          {
             ShiftMenuResult (_settingsBlockEnd.PosY + 1);
 
@@ -385,6 +400,15 @@ namespace MathGame
 
       bool ActionShowResults ()
       {
+         _logic?.ShowResults ();
+
+         _curItem = _startGameItem;
+
+         if (_isSettingsShown)
+            ActionSettings ();
+         else
+            Display ();
+
          return false;
       }
 

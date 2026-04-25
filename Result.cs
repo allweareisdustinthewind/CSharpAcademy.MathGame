@@ -81,7 +81,7 @@
       int _gameNumber;
 
       // Difficulty level (0 - easy, 1 - normal, 2 - hard)
-      int _difficulty;
+      Settings.Level _difficulty;
 
       // Maximal length of text block with information on screen in symbols
       static int _maxLength = 44;
@@ -89,7 +89,7 @@
       // Offset of each block from left border of window
       static string _indent = new (' ', 10);
 
-      public GameResult (int gameNumber, int difficulty)
+      public GameResult (int gameNumber, Settings.Level difficulty)
       {
          _gameNumber = gameNumber;
          _difficulty = difficulty;
@@ -140,7 +140,7 @@
             Tuple.Create ("   Started:    ", _startTime.ToString ()),
             Tuple.Create ("   Ended:      ", _endTime.ToString ()),
             Tuple.Create ("   Duration:   ", (_endTime - _startTime).Seconds.ToString () + " seconds"),
-            Tuple.Create ("   Difficulty: ", _difficulty == 0 ? "easy" : _difficulty == 1 ? "normal" : "hard"),
+            Tuple.Create ("   Difficulty: ", _difficulty == Settings.Level.Easy ? "easy" : _difficulty == Settings.Level.Normal ? "normal" : "hard"),
             Tuple.Create (" ", " "),
          ];
 

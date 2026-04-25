@@ -79,6 +79,63 @@ namespace MathGame
             Console.Write (Name);
          }
       }
+
+      public MenuItem GetNextSelectable ()
+      {
+         MenuItem item = NextItem;
+         while (item != null && item.CallAction == null)
+            item = item.NextItem;
+
+         return item;
+      }
+
+      public MenuItem GetPrevSelectable ()
+      {
+         MenuItem item = PrevItem;
+         while (item != null && item.CallAction == null)
+            item = item.PrevItem;
+
+         return item;
+      }
+
+      public void Activate (bool selectOnScreen = true)
+      {
+         if (Name.Contains ("(*)"))
+            return;
+
+         Name = Name.Replace ("( )", "(*)");
+
+         Console.SetCursorPosition (PosX, PosY);
+         if (selectOnScreen)
+         {
+            Console.BackgroundColor = _highlightBackgroundColor;
+            Console.ForegroundColor = _highlightForegroundColor;
+            Console.Write (Name);
+
+            Console.BackgroundColor = _defaultBackgroundColor;
+            Console.ForegroundColor = _defaultForegroundColor;
+         }
+         else
+         {
+            Console.BackgroundColor = _defaultBackgroundColor;
+            Console.ForegroundColor = _defaultForegroundColor;
+            Console.Write (Name);
+         }
+      }
+
+      public void Deactivate ()
+      {
+         if (Name.Contains ("( )"))
+            return;
+
+         Name = Name.Replace ("(*)", "( )");
+
+         Console.BackgroundColor = _defaultBackgroundColor;
+         Console.ForegroundColor = _defaultForegroundColor;
+
+         Console.SetCursorPosition (PosX, PosY);
+         Console.Write (Name);
+      }
    }
 
    //
@@ -93,8 +150,22 @@ namespace MathGame
       MenuItem?_startGameItem = null;
       MenuItem? _settingsItem = null;
       MenuItem? _showResultItem = null;
+      
       MenuItem? _settingsBlockBegin = null;
       MenuItem? _settingsBlockEnd = null;
+      
+      MenuItem? _itemEasy = null;
+      MenuItem? _itemNormal = null;
+      MenuItem? _itemHard = null;
+
+      MenuItem? _itemModeRandom = null;
+      MenuItem? _itemModeFix = null;
+
+      MenuItem? _itemOpAdd = null;
+      MenuItem? _itemOpSub = null;
+      MenuItem? _itemOpMul = null;
+      MenuItem? _itemOpDiv = null;
+
       MenuItem? _curItem = null;
 
       int _posShowResult = 0;
@@ -115,8 +186,7 @@ namespace MathGame
          }
          while (curItem != _startGameItem);
 
-         _startGameItem?.SetState (MenuItem.State.Highlighted);
-         _curItem = _startGameItem;
+         _curItem?.SetState (MenuItem.State.Highlighted);
       }
 
       // Creates title of game
@@ -172,29 +242,30 @@ namespace MathGame
          _settingsBlockBegin = new ("Difficulty: ", posX, posY);
          _settingsBlockBegin.PrevItem = _settingsItem;
 
-         var curItem = _settingsBlockBegin;
-         curItem = curItem.ConnectWith ("easy  ",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
-         curItem = curItem.ConnectWith ("normal  ", posX += curItem.Name.Length, posY, ActionChangeDifficulty);
-         curItem = curItem.ConnectWith ("hard  ",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
+         _itemEasy   = _settingsBlockBegin.ConnectWith ("(*) easy ", posX += _settingsBlockBegin.Name.Length, posY, ActionChangeDifficulty);
+         _itemNormal = _itemEasy.ConnectWith ("( ) normal ", posX += _itemEasy.Name.Length, posY, ActionChangeDifficulty);
+         _itemHard   = _itemNormal.ConnectWith ("( ) hard ",   posX += _itemNormal.Name.Length, posY, ActionChangeDifficulty);
 
          posX = x + offsetSettingsMenu;
          MenuItem itemMode = new ("Operation will be set: ", posX, ++posY);
-         itemMode.PrevItem = curItem;
-         curItem.NextItem = itemMode;
+         itemMode.PrevItem = _itemHard;
+         _itemHard.NextItem = itemMode;
 
-         itemMode = itemMode.ConnectWith ("randomly  ",     posX += itemMode.Name.Length, posY, ActionChangeMode);
-         itemMode = itemMode.ConnectWith ("as following:  ", posX += itemMode.Name.Length, posY, ActionChangeMode);
+         _itemModeRandom = itemMode.ConnectWith ("(*) randomly ", posX += itemMode.Name.Length, posY, ActionChangeMode);
+         _itemModeFix = _itemModeRandom.ConnectWith ("( ) as following:", posX += _itemModeRandom.Name.Length, posY);
 
-         MenuItem itemOper = new ("+ : addition", posX, ++posY, handler: ActionChangeOperation);
-         itemOper.PrevItem = itemMode;
-         itemMode.NextItem = itemOper;
+         _itemOpAdd = new ("( ) addition", posX, ++posY, handler: ActionChangeOperation);
+         _itemOpAdd.PrevItem = _itemModeFix;
+         _itemModeFix.NextItem = _itemOpAdd;
 
-         itemOper = itemOper.ConnectWith ("- : subtraction",    posX, ++posY, ActionChangeOperation);
-         itemOper = itemOper.ConnectWith ("x : multiplication", posX, ++posY, ActionChangeOperation);
-         itemOper = itemOper.ConnectWith ("/ : division",       posX, ++posY, ActionChangeOperation);
+         _itemOpSub = _itemOpAdd.ConnectWith ("( ) subtraction",    posX, ++posY, ActionChangeOperation);
+         _itemOpMul = _itemOpSub.ConnectWith ("( ) multiplication", posX, ++posY, ActionChangeOperation);
+         _itemOpDiv = _itemOpMul.ConnectWith ("( ) division",       posX, ++posY, ActionChangeOperation);
 
-         _settingsBlockEnd = itemOper;
+         _settingsBlockEnd = _itemOpDiv;
          _settingsBlockEnd.NextItem = _showResultItem;
+
+         _curItem = _startGameItem;
       }
 
       void SelectItem (MenuItem ?item)
@@ -202,6 +273,23 @@ namespace MathGame
          _curItem?.SetState (MenuItem.State.Normal);
          _curItem = item;
          _curItem?.SetState (MenuItem.State.Highlighted);
+      }
+
+      void ShiftMenuResult (int offset)
+      {
+         var item = _showResultItem;
+         do
+         {
+            item.PosY = offset++;
+            item = item.NextItem;
+         }
+         while (item != _startGameItem);
+      }
+
+      void DeactivateItems (MenuItem [] items)
+      { 
+         foreach (var item in items)
+            item.Deactivate ();
       }
 
       bool ActionStartGame ()
@@ -227,34 +315,71 @@ namespace MathGame
             _showResultItem.PrevItem = _settingsItem;
          }
 
+         _curItem = _settingsItem;
+
          Display ();
 
          return false;
       }
 
-      void ShiftMenuResult (int offset)
-      {
-         var item = _showResultItem;
-         do
-         {
-            item.PosY = offset++;
-            item = item.NextItem;
-         }
-         while (item != _startGameItem);
-      }
-
       bool ActionChangeDifficulty ()
       {
+         if (_curItem == _itemEasy)
+         {
+            DeactivateItems ([_itemNormal, _itemHard]);
+            _settings.Difficulty = Settings.Level.Easy;
+         }
+         else if (_curItem == _itemNormal)
+         {
+            DeactivateItems ([_itemEasy, _itemHard]);
+            _settings.Difficulty = Settings.Level.Normal;
+         }
+         else
+         {
+            DeactivateItems ([_itemEasy, _itemNormal]);
+            _settings.Difficulty = Settings.Level.Hard;
+         }
+
+         _curItem.Activate ();
+
          return false;
       }
 
       bool ActionChangeMode ()
       {
+         DeactivateItems ([_itemModeFix, _itemOpAdd, _itemOpSub, _itemOpMul, _itemOpDiv]);
+         _curItem.Activate ();
+         _settings.Operation = "@";
+
          return false;
       }
 
       bool ActionChangeOperation ()
       {
+         if (_curItem == _itemOpAdd)
+         {
+            DeactivateItems ([_itemModeRandom, _itemOpSub, _itemOpMul, _itemOpDiv]);
+            _settings.Operation = "+";
+         }
+         else if (_curItem == _itemOpSub)
+         {
+            DeactivateItems ([_itemModeRandom, _itemOpAdd, _itemOpMul, _itemOpDiv]);
+            _settings.Operation = "-";
+         }
+         else if (_curItem == _itemOpMul)
+         {
+            DeactivateItems ([_itemModeRandom, _itemOpAdd, _itemOpSub, _itemOpDiv]);
+            _settings.Operation = "x";
+         }
+         else
+         {
+            DeactivateItems ([_itemModeRandom, _itemOpAdd, _itemOpSub, _itemOpMul]);
+            _settings.Operation = "/";
+         }
+
+         _curItem.Activate ();
+         _itemModeFix.Activate (false /*selectOnScreen*/);
+
          return false;
       }
 
@@ -281,11 +406,13 @@ namespace MathGame
             switch (key)
             {
                case ConsoleKey.UpArrow:
-                  SelectItem (_curItem?.PrevItem);
+               case ConsoleKey.LeftArrow:
+                  SelectItem (_curItem?.GetPrevSelectable ());
                   break;
 
                case ConsoleKey.DownArrow:
-                  SelectItem (_curItem?.NextItem);
+               case ConsoleKey.RightArrow:
+                  SelectItem (_curItem?.GetNextSelectable ());
                   break;
 
                case ConsoleKey.Escape:

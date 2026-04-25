@@ -97,6 +97,8 @@ namespace MathGame
       MenuItem? _settingsBlockEnd = null;
       MenuItem? _curItem = null;
 
+      int _posShowResult = 0;
+
       bool isSettingsShown = false;
 
       // Display main menu
@@ -156,6 +158,8 @@ namespace MathGame
 
          _settingsItem   = _startGameItem.ConnectWith ("Settings", x, ++y, ActionSettings);
          _showResultItem = _settingsItem.ConnectWith ("Show all results", x, ++y, ActionShowResults);
+         _posShowResult = y;
+
          var exitItem    = _showResultItem.ConnectWith ("Exit", x, ++y, ActionExit);
 
          // Connect item "Exit" with "Start game" to make a loop by selecting
@@ -163,33 +167,33 @@ namespace MathGame
          _startGameItem.PrevItem = exitItem;
 
          int posX = x + offsetSettingsMenu;
-         int posY = y;
+         int posY = _posShowResult;
 
-         _settingsBlockBegin = new ("Difficulty: ", posX, ++posY);
+         _settingsBlockBegin = new ("Difficulty: ", posX, posY);
          _settingsBlockBegin.PrevItem = _settingsItem;
 
          var curItem = _settingsBlockBegin;
-         curItem = curItem.ConnectWith ("easy",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
-         curItem = curItem.ConnectWith ("normal", posX += curItem.Name.Length, posY, ActionChangeDifficulty);
-         curItem = curItem.ConnectWith ("hard",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
+         curItem = curItem.ConnectWith ("easy  ",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
+         curItem = curItem.ConnectWith ("normal  ", posX += curItem.Name.Length, posY, ActionChangeDifficulty);
+         curItem = curItem.ConnectWith ("hard  ",   posX += curItem.Name.Length, posY, ActionChangeDifficulty);
 
          posX = x + offsetSettingsMenu;
          MenuItem itemMode = new ("Operation will be set: ", posX, ++posY);
          itemMode.PrevItem = curItem;
          curItem.NextItem = itemMode;
 
-         itemMode = itemMode.ConnectWith ("randomly",     posX += itemMode.Name.Length, posY, ActionChangeMode);
-         itemMode = itemMode.ConnectWith ("as following", posX += itemMode.Name.Length, posY, ActionChangeMode);
+         itemMode = itemMode.ConnectWith ("randomly  ",     posX += itemMode.Name.Length, posY, ActionChangeMode);
+         itemMode = itemMode.ConnectWith ("as following:  ", posX += itemMode.Name.Length, posY, ActionChangeMode);
 
          MenuItem itemOper = new ("+ : addition", posX, ++posY, handler: ActionChangeOperation);
          itemOper.PrevItem = itemMode;
-         curItem.NextItem = itemOper;
+         itemMode.NextItem = itemOper;
 
-         curItem = curItem.ConnectWith ("- : subtraction",    posX, ++posY, ActionChangeOperation);
-         curItem = curItem.ConnectWith ("x : multiplication", posX, ++posY, ActionChangeOperation);
-         curItem = curItem.ConnectWith ("/ : division",       posX, ++posY, ActionChangeOperation);
+         itemOper = itemOper.ConnectWith ("- : subtraction",    posX, ++posY, ActionChangeOperation);
+         itemOper = itemOper.ConnectWith ("x : multiplication", posX, ++posY, ActionChangeOperation);
+         itemOper = itemOper.ConnectWith ("/ : division",       posX, ++posY, ActionChangeOperation);
 
-         _settingsBlockEnd = curItem;
+         _settingsBlockEnd = itemOper;
          _settingsBlockEnd.NextItem = _showResultItem;
       }
 
@@ -210,11 +214,15 @@ namespace MathGame
          isSettingsShown = !isSettingsShown;
          if (isSettingsShown)
          {
+            ShiftMenuResult (_settingsBlockEnd.PosY + 1);
+
             _settingsItem.NextItem = _settingsBlockBegin;
             _showResultItem.PrevItem = _settingsBlockEnd;
          }
          else
          {
+            ShiftMenuResult (_posShowResult);
+
             _settingsItem.NextItem = _showResultItem;
             _showResultItem.PrevItem = _settingsItem;
          }
@@ -222,6 +230,17 @@ namespace MathGame
          Display ();
 
          return false;
+      }
+
+      void ShiftMenuResult (int offset)
+      {
+         var item = _showResultItem;
+         do
+         {
+            item.PosY = offset++;
+            item = item.NextItem;
+         }
+         while (item != _startGameItem);
       }
 
       bool ActionChangeDifficulty ()

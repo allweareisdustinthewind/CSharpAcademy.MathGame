@@ -1,24 +1,35 @@
 ﻿namespace MathGame
 {
+   /// <summary>
+   /// Class witt all game's logic
+   /// </summary>
    public class GameLogic
    {
-      Settings _settings = null;
+      // Game's settings
+      Settings? _settings = null;
+
+      // Unique number of gamme's round
       int _gameNumber = 0;
+
+      // Time spent in one round
       int _totalSeconds = 0;
       int _totalMinutes = 0;
       int _totalHours = 0;
 
+      // Default colors of console window
       ConsoleColor _defaultForegroundColor = Console.ForegroundColor;
       ConsoleColor _defaultBackgroundColor = Console.BackgroundColor;
 
-      //// List of all results of game
+      // List of all results of game
       List<GameResult> _results = new ();
 
       Random _random = new ();
-      System.Threading.Timer ?_timer = null;
+      System.Threading.Timer? _timer = null;
 
+      // If true, then time in timer function won't be increased
       bool _pauseInTimer = false;
 
+      // All questions, which were already asked in one round (to not ask same question one more time)
       HashSet<string> _questions = new ();
 
       public GameLogic (Settings settings)
@@ -26,6 +37,9 @@
          _settings = settings;
       }
 
+      /// <summary>
+      /// Play one round of game
+      /// </summary>
       public void PlayRound ()
       {
          if (_settings == null)
@@ -54,6 +68,7 @@
             string text = $"  {i + 1}.  {question}";
             Console.Write (text);
 
+            // By asking first question start timer to measure total time spent in game's round
             if (_timer == null)
                _timer = new Timer (TimerCallback, null, 0, 1000);
 
@@ -72,6 +87,7 @@
             info.AddResult (question, result, answer);
          }
 
+         // Stop time, if all questions were asked
          _timer?.Dispose ();
          _timer = null;
 
@@ -84,9 +100,13 @@
          Console.ReadKey ();
       }
 
-      //
-      // Update count of questions with correct and wrong answers after receiving antwort from user
-      //
+      /// <summary>
+      /// Update count of questions with correct and wrong answers after receiving antwort from user
+      /// </summary>
+      /// <param name="curQuestion"></param>
+      /// <param name="maxQuestions"></param>
+      /// <param name="correctAnswers"></param>
+      /// <param name="wrongAnswers"></param>
       void UpdateStatistic (int curQuestion, int maxQuestions, int correctAnswers = 0, int wrongAnswers = 0)
       {
          var (x, y) = Console.GetCursorPosition ();
@@ -115,9 +135,10 @@
             Console.SetCursorPosition (x, y);
       }
 
-      //
-      // Updates timer in console. Will be launched by starting a new game in 1-second taсt
-      //
+      /// <summary>
+      /// Updates timer in console. Will be launched by starting a new game in 1-second taсt
+      /// </summary>
+      /// <param name="_"></param>
       void TimerCallback (Object? _)
       {
          if (_pauseInTimer)
@@ -156,9 +177,10 @@
          Console.CursorVisible = true;
       }
 
-      //
-      // Report, that answer is wrong
-      //
+      /// <summary>
+      /// Report on console, that answer is wrong
+      /// </summary>
+      /// <param name="correctAnswer"></param>
       void ReportWrongAnswer (int correctAnswer)
       {
          Console.ForegroundColor = ConsoleColor.Red;
@@ -166,9 +188,9 @@
          Console.ForegroundColor = _defaultForegroundColor;
       }
 
-      //
-      // Report, that answer is correct
-      //
+      /// <summary>
+      /// Report on console, that answer is correct
+      /// </summary>
       void ReportCorrectAnswer ()
       {
          Console.ForegroundColor = ConsoleColor.Green;
@@ -176,9 +198,10 @@
          Console.ForegroundColor = _defaultForegroundColor;
       }
 
-      //
-      // Received input from user and analyzes it for correctness
-      //
+      /// <summary>
+      /// Received input from user and analyzes it for correctness
+      /// </summary>
+      /// <returns></returns>
       int GetAnswer ()
       {
          int val = 0;
@@ -233,13 +256,18 @@
          return val;
       }
 
-      //
-      // Create two operands for operation '+'
-      //
+      /// <summary>
+      /// Create two operands for operation '+'
+      /// </summary>
+      /// <param name="op1"></param>
+      /// <param name="op2"></param>
       void GenerateOperandsForAddition (out int op1, out int op2)
       {
          op1 = 0;
          op2 = 0;
+
+         if (_settings == null)
+            return;
 
          switch (_settings.Difficulty)
          {
@@ -260,13 +288,18 @@
          }
       }
 
-      //
-      // Create two operands for operation '-'
-      //
+      /// <summary>
+      /// Create two operands for operation '-'
+      /// </summary>
+      /// <param name="op1"></param>
+      /// <param name="op2"></param>
       void GenerateOperandsForSubtraction (out int op1, out int op2)
       {
          op1 = 0;
          op2 = 0;
+
+         if (_settings == null)
+            return;
 
          int from = 0;
          int to = 0;
@@ -304,13 +337,18 @@
          }
       }
 
-      //
-      // Create two operands for operation 'x'
-      //
+      /// <summary>
+      /// Create two operands for operation 'x'
+      /// </summary>
+      /// <param name="op1"></param>
+      /// <param name="op2"></param>
       void GenerateOperandsForMultiplication (out int op1, out int op2)
       {
          op1 = 0;
          op2 = 0;
+
+         if (_settings == null)
+            return;
 
          int from = 0;
          int to = 0;
@@ -337,13 +375,18 @@
          op2 = _random.Next (from, to);
       }
 
-      //
-      // Create two operands for operation '/'
-      //
+      /// <summary>
+      /// Create two operands for operation '/'
+      /// </summary>
+      /// <param name="op1"></param>
+      /// <param name="op2"></param>
       void GenerateOperandsForDivision (out int op1, out int op2)
       {
          op1 = 0;
          op2 = 0;
+
+         if (_settings == null)
+            return;
 
          int from = 0;
          int to = 0;
@@ -382,9 +425,11 @@
          }
       }
 
-      //
-      // True if value is a prime number
-      //
+      /// <summary>
+      /// Check, if given number is a prime number
+      /// </summary>
+      /// <param name="val"></param>
+      /// <returns>True, if value is a prime number</returns>
       bool IsPrimeNumber (int val)
       {
          if (val <= 1)
@@ -403,23 +448,29 @@
          return true;
       }
 
-      //
-      // Creates random mathematical question 
-      //
+      /// <summary>
+      /// Creates random mathematical question 
+      /// </summary>
+      /// <param name="result"></param>
+      /// <returns></returns>
       string GenerateQuestion (out int result)
       {
          result = 0;
 
          int operation = 0;
-         if (_settings.Operation == "@")
-            operation = _random.Next (0, 4);
-         else operation = _settings.Operation switch
+
+         if (_settings != null)
          {
-            "+" => 0,
-            "-" => 1,
-            "x" => 2,
-            _ => 3
-         };
+            if (_settings.Operation == "@")
+               operation = _random.Next (0, 4);
+            else operation = _settings.Operation switch
+            {
+               "+" => 0,
+               "-" => 1,
+               "x" => 2,
+               _ => 3
+            };
+         }
 
          for (; ; )
          {
@@ -456,6 +507,8 @@
             }
 
             string question = $"{op1} {operationSymbol} {op2} = ";
+            
+            // Ensure, that in round will be asked only unique questions
             if (_questions.Contains (question))
                continue;
 
@@ -464,9 +517,9 @@
          }
       }
 
-      //
-      // Display results all game rounds
-      //
+      /// <summary>
+      /// Display results all game rounds
+      /// </summary>
       public void ShowResults ()
       {
          Console.ForegroundColor = _defaultForegroundColor;

@@ -9,7 +9,7 @@
       public static readonly int MaxQuestions = 5; // Count of all questions in the game
 
       // Arithmetical operation. If '@', then operation will ge generated randomly
-      public string? Operation { get; set; } = "@";
+      public string Operation { get; set; } = "@";
 
       // Level of difficulty
       public Level Difficulty { get; set; } = Level.Easy;

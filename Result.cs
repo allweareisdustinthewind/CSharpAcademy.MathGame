@@ -1,8 +1,8 @@
 ﻿namespace MathGame
 {
-   //
-   // Contains information about question with user's answer 
-   //
+   /// <summary>
+   /// Contains information about question with user's answer 
+   /// </summary>
    internal class Answer
    {
       // Mathematical question in format "op1 operation op2 = " i.e. "3 x 5 = "
@@ -26,9 +26,13 @@
          return UserInput == CorrectResult;
       }
 
-      //
-      // Display question and answer on console
-      //
+      /// <summary>
+      /// Display question and answer on console
+      /// </summary>
+      /// <param name="indent"></param>
+      /// <param name="number"></param>
+      /// <param name="maxLength"></param>
+      /// <param name="maxQuestionLength"></param>
       public void Display (string indent, int number, int maxLength, int maxQuestionLength)
       {
          string textNumber = $" {number}. ";
@@ -65,9 +69,9 @@
       }
    }
 
-   //
-   // Info about one game round (all questions, answers and total statistic)
-   //
+   /// <summary>
+   /// Info about one game round (all questions, answers and total statistic)
+   /// </summary>
    public class GameResult
    {
       // All answers of round
@@ -105,9 +109,9 @@
          _endTime = DateTime.Now;
       }
 
-      //
-      // Display statistic of one game's round with all questions and answers
-      //
+      /// <summary>
+      /// Display statistic of one game's round with all questions and answers
+      /// </summary>
       public void Display ()
       {
          if (_answers.Count <= 0)
@@ -177,9 +181,11 @@
          Console.ForegroundColor = defaultForeground;
       }
 
-      //
-      // Display one line of game's statistic
-      //
+      /// <summary>
+      /// Display one line of game's statistic
+      /// </summary>
+      /// <param name="name"></param>
+      /// <param name="data"></param>
       private void DisplayInfo (string name, string data)
       {
          // Text without value

@@ -1,27 +1,26 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
-namespace MathGame
+﻿namespace MathGame
 {
-   //
-   // Single item of game menu
-   // 
+   /// <summary>
+   /// Single item of game menu
+   /// </summary>
    internal class MenuItem
    {
       // Display name without indention
       public string Name { get; set; }
 
       // Previous element in menu
-      public MenuItem ?PrevItem { get; set; }
+      public MenuItem PrevItem { get; set; }
 
       // Next element in menu
-      public MenuItem ?NextItem { get; set; }
+      public MenuItem NextItem { get; set; }
 
-      // Position of item im console
+      // X-position of item im console
       public int PosX { get; set; }
 
+      // Y-position of item im console
       public int PosY { get; set; }
 
+      // Action to perform by pressing a button
       public delegate bool CallActionHandler ();
       public CallActionHandler CallAction;
 
@@ -31,34 +30,45 @@ namespace MathGame
       static ConsoleColor _highlightForegroundColor = ConsoleColor.Black;
       static ConsoleColor _highlightBackgroundColor = ConsoleColor.White;
 
+      // States oof item
       public enum State
       { 
          Highlighted,
          Normal
       }
 
-      public MenuItem (string name, int posX = 0, int posY = 0, MenuItem ?prevItem = null, MenuItem ?nextItem = null, CallActionHandler? handler = null)
+      public MenuItem (string name, int posX = 0, int posY = 0, MenuItem? prevItem = null, MenuItem? nextItem = null, CallActionHandler? handler = null)
       {
          Name = name;
-         PrevItem = prevItem;
-         NextItem = nextItem;
+         PrevItem = prevItem!;
+         NextItem = nextItem!;
          PosX = posX;
          PosY = posY;
-         CallAction = handler;
+         CallAction = handler!;
       }
 
-      // Connect actual item with a new item 
-      public MenuItem ConnectWith (string name, int posX, int posY, CallActionHandler ?handler = null)
+      /// <summary>
+      /// Connect actual item with a new item 
+      /// </summary>
+      /// <param name="name">Display name of new item</param>
+      /// <param name="posX">X-position</param>
+      /// <param name="posY">Y-position</param>
+      /// <param name="handler">Action to perform</param>
+      /// <returns>New item, which connects with existing item</returns>
+      public MenuItem ConnectWith (string name, int posX, int posY, CallActionHandler? handler = null)
       {
          MenuItem item = new (name, posX, posY);
          item.PrevItem = this;
          NextItem = item;
-         item.CallAction = handler;
+         item.CallAction = handler!;
 
          return item;
       }
 
-      // Change state of item - highlight / normal
+      /// <summary>
+      /// Change state of item - highlight / normal
+      /// </summary>
+      /// <param name="state">State to set</param>
       public void SetState (State state)
       {
          Console.SetCursorPosition (PosX, PosY);
@@ -80,7 +90,12 @@ namespace MathGame
          }
       }
 
-      public MenuItem GetNextSelectable ()
+      /// <summary>
+      /// Return next item in hierarchy, which can be selected.
+      /// Only items with assigned actions can be selected
+      /// </summary>
+      /// <returns>Next item to select</returns>
+      public MenuItem? GetNextSelectable ()
       {
          MenuItem item = NextItem;
          while (item != null && item.CallAction == null)
@@ -89,7 +104,12 @@ namespace MathGame
          return item;
       }
 
-      public MenuItem GetPrevSelectable ()
+      /// <summary>
+      /// Return previous item in hierarchy, which can be selected.
+      /// Only items with assigned actions can be selected
+      /// </summary>
+      /// <returns>Previous item to select</returns>
+      public MenuItem? GetPrevSelectable ()
       {
          MenuItem item = PrevItem;
          while (item != null && item.CallAction == null)
@@ -98,8 +118,13 @@ namespace MathGame
          return item;
       }
 
+      /// <summary>
+      /// Show item as activated (set "(*)" left from item's name)
+      /// </summary>
+      /// <param name="selectOnScreen">If true, then item will be also selected with inversed color</param>
       public void Activate (bool selectOnScreen = true)
       {
+         // Already activated? Nothing to do.
          if (Name.Contains ("(*)"))
             return;
 
@@ -123,8 +148,12 @@ namespace MathGame
          }
       }
 
+      /// <summary>
+      /// Show item as deactivated (replace "(*)" with "( )"  left from item's name)
+      /// </summary>
       public void Deactivate ()
       {
+         // Already deactivated? Nothing to do.
          if (Name.Contains ("( )"))
             return;
 
@@ -138,64 +167,82 @@ namespace MathGame
       }
    }
 
-   //
-   // Class to display of game's mmenu and control user's choice
-   //
+   /// <summary>
+   /// Class to display game's menu and process user's choice
+   /// </summary>
    public class GameMenu
    {
       // Game's settings
       Settings _settings = new ();
 
-      // Root of menu
-      MenuItem?_startGameItem = null;
+      // Items for actions "Start game", "Settings" and "Show all results"
+      MenuItem? _startGameItem = null;
       MenuItem? _settingsItem = null;
       MenuItem? _showResultItem = null;
       
+      // Begin and end of settings block
       MenuItem? _settingsBlockBegin = null;
       MenuItem? _settingsBlockEnd = null;
       
+      // Items of difficulty levels
       MenuItem? _itemEasy = null;
       MenuItem? _itemNormal = null;
       MenuItem? _itemHard = null;
 
+      // Items of game's mode (random / fix)
       MenuItem? _itemModeRandom = null;
       MenuItem? _itemModeFix = null;
 
+      // Items of mathematical operations
       MenuItem? _itemOpAdd = null;
       MenuItem? _itemOpSub = null;
       MenuItem? _itemOpMul = null;
       MenuItem? _itemOpDiv = null;
 
+      // Actual selected menu item
       MenuItem? _curItem = null;
 
+      // Y-position of item "Show all results"
       int _posShowResult = 0;
 
+      // If true, then block with all settings of the game is visible
       bool _isSettingsShown = false;
-      GameLogic _logic = null;
+
+      // All game's logic is hier
+      GameLogic? _logic = null;
 
       public GameMenu ()
       {
          _logic = new (_settings);
       }
 
-      // Display main menu
+      /// <summary>
+      /// Show menu on a screen
+      /// </summary>
       void Display ()
       {
          DisplayGameDescription ();
          
-         MenuItem ?curItem = _startGameItem;
-         do
+         // Go through all menu items and show them.
+         // Important: menu items form a cyclic list - last item point to the first one
+         MenuItem? item = _startGameItem;
+         if (item != null)
          {
-            Console.SetCursorPosition (curItem.PosX, curItem.PosY);
-            Console.Write (curItem.Name);
-            curItem = curItem.NextItem;
+            do
+            {
+               Console.SetCursorPosition (item.PosX, item.PosY);
+               Console.Write (item.Name);
+               item = item.NextItem;
+            }
+            while (item != null && item != _startGameItem);
          }
-         while (curItem != _startGameItem);
 
          _curItem?.SetState (MenuItem.State.Highlighted);
       }
 
-      // Creates title of game
+      /// <summary>
+      /// Create title of a game
+      /// </summary>
       private void DisplayGameDescription ()
       {
          Console.Clear ();
@@ -217,7 +264,9 @@ namespace MathGame
          CreateMenuStructure ();
       }
 
-      // Fill internal data with names and positions of all menu items
+      /// <summary>
+      /// Fill internal data with names and positions of all menu items
+      /// </summary>
       void CreateMenuStructure ()
       {
          if (_startGameItem != null)
@@ -225,13 +274,15 @@ namespace MathGame
 
          // Offset of standard menu items from left border of console window
          const int offsetMainMenu = 8;
+
+         // Offset in symbols from left border of main menu. Will be used to displaoy setting's block
          const int offsetSettingsMenu = 4;
 
          var (x, y) = Console.GetCursorPosition ();
          x += offsetMainMenu;
 
+         // Create menu with items "Start game", "Settings", "Show all results" and "Exit"
          _startGameItem = new ("Start game", x, y, handler: ActionStartGame);
-
          _settingsItem   = _startGameItem.ConnectWith ("Settings", x, ++y, ActionSettings);
          _showResultItem = _settingsItem.ConnectWith ("Show all results", x, ++y, ActionShowResults);
          _posShowResult = y;
@@ -245,13 +296,16 @@ namespace MathGame
          int posX = x + offsetSettingsMenu;
          int posY = _posShowResult;
 
+         // Create menu for setting's block
          _settingsBlockBegin = new ("Difficulty: ", posX, posY);
          _settingsBlockBegin.PrevItem = _settingsItem;
 
+         // Append difficulty levels: easy, normal and hard
          _itemEasy   = _settingsBlockBegin.ConnectWith ("(*) easy ", posX += _settingsBlockBegin.Name.Length, posY, ActionChangeDifficulty);
          _itemNormal = _itemEasy.ConnectWith ("( ) normal ", posX += _itemEasy.Name.Length, posY, ActionChangeDifficulty);
          _itemHard   = _itemNormal.ConnectWith ("( ) hard ",   posX += _itemNormal.Name.Length, posY, ActionChangeDifficulty);
 
+         // Append modes: ramdom select operation and fix operation
          posX = x + offsetSettingsMenu;
          MenuItem itemMode = new ("Operation will be set: ", posX, ++posY);
          itemMode.PrevItem = _itemHard;
@@ -260,6 +314,7 @@ namespace MathGame
          _itemModeRandom = itemMode.ConnectWith ("(*) randomly ", posX += itemMode.Name.Length, posY, ActionChangeMode);
          _itemModeFix = _itemModeRandom.ConnectWith ("( ) as following:", posX += _itemModeRandom.Name.Length, posY);
 
+         // Append mathematical operations to perform
          _itemOpAdd = new ("( ) addition", posX, ++posY, handler: ActionChangeOperation);
          _itemOpAdd.PrevItem = _itemModeFix;
          _itemModeFix.NextItem = _itemOpAdd;
@@ -274,36 +329,53 @@ namespace MathGame
          _curItem = _startGameItem;
       }
 
-      void SelectItem (MenuItem ?item)
+      /// <summary>
+      /// Show menu item as selected / not seleted
+      /// </summary>
+      /// <param name="item"></param>
+      void SelectItem (MenuItem? item)
       {
          _curItem?.SetState (MenuItem.State.Normal);
          _curItem = item;
          _curItem?.SetState (MenuItem.State.Highlighted);
       }
 
-      void ShiftMenuResult (int offset)
+      /// <summary>
+      /// Shift menu's part from item "Show all results" to "Exit" to given number of lines to top / bottom
+      /// </summary>
+      /// <param name="offset">Count of lines to shift</param>
+      void MoveMenu (MenuItem itemToMove, int offset)
       {
-         var item = _showResultItem;
          do
          {
-            item.PosY = offset++;
-            item = item.NextItem;
+            itemToMove.PosY = offset++;
+            itemToMove = itemToMove.NextItem;
          }
-         while (item != _startGameItem);
+         while (itemToMove != _startGameItem);
       }
 
+      /// <summary>
+      /// Set given menu items in state "inactive"
+      /// </summary>
+      /// <param name="items"></param>
       void DeactivateItems (MenuItem [] items)
       { 
          foreach (var item in items)
             item.Deactivate ();
       }
 
+      /// <summary>
+      /// Start new game round (menu "Start game")
+      /// </summary>
+      /// <returns></returns>
       bool ActionStartGame ()
       {
          _logic?.PlayRound ();
 
+         // Select "Start game" in end of current game's round
          _curItem = _startGameItem;
 
+         // If block with game's settings open, then collapse it, then show main menu
          if (_isSettingsShown)
             ActionSettings ();
          else
@@ -312,22 +384,35 @@ namespace MathGame
          return false;
       }
 
+      /// <summary>
+      /// Show / hide block with game's settings (menu "Settings")
+      /// </summary>
+      /// <returns></returns>
       bool ActionSettings ()
       {
          _isSettingsShown = !_isSettingsShown;
+
+         // Insert or remove setting's block to main menu and then display menu with changed structure on the screen
          if (_isSettingsShown)
          {
-            ShiftMenuResult (_settingsBlockEnd.PosY + 1);
+            if (_settingsBlockEnd != null)
+               MoveMenu (_showResultItem!, _settingsBlockEnd.PosY + 1);
 
-            _settingsItem.NextItem = _settingsBlockBegin;
-            _showResultItem.PrevItem = _settingsBlockEnd;
+            if (_settingsItem != null)
+               _settingsItem.NextItem = _settingsBlockBegin!;
+
+            if (_showResultItem != null)
+               _showResultItem.PrevItem = _settingsBlockEnd!;
          }
          else
          {
-            ShiftMenuResult (_posShowResult);
+            MoveMenu (_showResultItem!, _posShowResult);
 
-            _settingsItem.NextItem = _showResultItem;
-            _showResultItem.PrevItem = _settingsItem;
+            if (_settingsItem != null)
+               _settingsItem.NextItem = _showResultItem!;
+
+            if (_showResultItem != null)
+               _showResultItem.PrevItem = _settingsItem!;
          }
 
          _curItem = _settingsItem;
@@ -337,71 +422,88 @@ namespace MathGame
          return false;
       }
 
+      /// <summary>
+      /// Set difficulty level (menu "Difficulty" in setting's block)
+      /// </summary>
+      /// <returns></returns>
       bool ActionChangeDifficulty ()
       {
          if (_curItem == _itemEasy)
          {
-            DeactivateItems ([_itemNormal, _itemHard]);
+            DeactivateItems ([_itemNormal!, _itemHard!]);
             _settings.Difficulty = Settings.Level.Easy;
          }
          else if (_curItem == _itemNormal)
          {
-            DeactivateItems ([_itemEasy, _itemHard]);
+            DeactivateItems ([_itemEasy!, _itemHard!]);
             _settings.Difficulty = Settings.Level.Normal;
          }
          else
          {
-            DeactivateItems ([_itemEasy, _itemNormal]);
+            DeactivateItems ([_itemEasy!, _itemNormal!]);
             _settings.Difficulty = Settings.Level.Hard;
          }
 
-         _curItem.Activate ();
+         _curItem?.Activate ();
 
          return false;
       }
 
+      /// <summary>
+      /// Set game mode (select operation randomly or use fixed operation)
+      /// </summary>
+      /// <returns></returns>
       bool ActionChangeMode ()
       {
-         DeactivateItems ([_itemModeFix, _itemOpAdd, _itemOpSub, _itemOpMul, _itemOpDiv]);
-         _curItem.Activate ();
+         DeactivateItems ([_itemModeFix!, _itemOpAdd!, _itemOpSub!, _itemOpMul!, _itemOpDiv!]);
+         _curItem?.Activate ();
          _settings.Operation = "@";
 
          return false;
       }
 
+      /// <summary>
+      /// Set fixed arithmmetical operation
+      /// </summary>
+      /// <returns></returns>
       bool ActionChangeOperation ()
       {
          if (_curItem == _itemOpAdd)
          {
-            DeactivateItems ([_itemModeRandom, _itemOpSub, _itemOpMul, _itemOpDiv]);
+            DeactivateItems ([_itemModeRandom!, _itemOpSub!, _itemOpMul!, _itemOpDiv!]);
             _settings.Operation = "+";
          }
          else if (_curItem == _itemOpSub)
          {
-            DeactivateItems ([_itemModeRandom, _itemOpAdd, _itemOpMul, _itemOpDiv]);
+            DeactivateItems ([_itemModeRandom!, _itemOpAdd!, _itemOpMul!, _itemOpDiv!]);
             _settings.Operation = "-";
          }
          else if (_curItem == _itemOpMul)
          {
-            DeactivateItems ([_itemModeRandom, _itemOpAdd, _itemOpSub, _itemOpDiv]);
+            DeactivateItems ([_itemModeRandom!, _itemOpAdd!, _itemOpSub!, _itemOpDiv!]);
             _settings.Operation = "x";
          }
          else
          {
-            DeactivateItems ([_itemModeRandom, _itemOpAdd, _itemOpSub, _itemOpMul]);
+            DeactivateItems ([_itemModeRandom!, _itemOpAdd!, _itemOpSub!, _itemOpMul!]);
             _settings.Operation = "/";
          }
 
-         _curItem.Activate ();
-         _itemModeFix.Activate (false /*selectOnScreen*/);
+         _curItem?.Activate ();
+         _itemModeFix?.Activate (false /*selectOnScreen*/);
 
          return false;
       }
 
+      /// <summary>
+      /// Display results of all games (menu "Show all results")
+      /// </summary>
+      /// <returns></returns>
       bool ActionShowResults ()
       {
          _logic?.ShowResults ();
 
+         // Restore main menu (collapse opened setting's block if needed) and highlight "Start game" item
          _curItem = _startGameItem;
 
          if (_isSettingsShown)
@@ -412,11 +514,18 @@ namespace MathGame
          return false;
       }
 
+      /// <summary>
+      /// Exit from game (menu "Exit")
+      /// </summary>
+      /// <returns>True means, that actual game round must be terminated</returns>
       bool ActionExit ()
       {
          return true;
       }
 
+      /// <summary>
+      /// Process user's actions in menu
+      /// </summary>
       public void Run ()
       {
          Display ();
@@ -429,20 +538,24 @@ namespace MathGame
             var key = Console.ReadKey (true).Key;
             switch (key)
             {
+               // Select previous item
                case ConsoleKey.UpArrow:
                case ConsoleKey.LeftArrow:
                   SelectItem (_curItem?.GetPrevSelectable ());
                   break;
 
+               // Select next item
                case ConsoleKey.DownArrow:
                case ConsoleKey.RightArrow:
                   SelectItem (_curItem?.GetNextSelectable ());
                   break;
 
+               // Exit game
                case ConsoleKey.Escape:
                   exitGame = true;
                   break;
 
+               // Perform action
                case ConsoleKey.Enter:
                case ConsoleKey.Spacebar:
                   exitGame = _curItem?.CallAction () ?? false;
